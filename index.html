@@ -253,6 +253,28 @@
     cursor: pointer;
   }
 
+  .option-group.toggle { grid-column: 1 / -1; }
+
+  .toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    cursor: pointer;
+    margin-bottom: 0;
+    text-transform: none;
+    letter-spacing: normal;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.875rem;
+    color: var(--text);
+  }
+
+  .toggle-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
   .qr-output {
     display: none;
     flex-direction: column;
@@ -426,6 +448,12 @@
       <label>Light color</label>
       <input type="color" id="color-light" value="#ffffff" />
     </div>
+    <div class="option-group toggle">
+      <label class="toggle-label">
+        <input type="checkbox" id="border-toggle" checked />
+        <span>White border (quiet zone)</span>
+      </label>
+    </div>
   </div>
 
   <div class="qr-output" id="qr-output">
@@ -468,16 +496,30 @@
 
   const ecMap = { L: QRCode.CorrectLevel.L, M: QRCode.CorrectLevel.M, Q: QRCode.CorrectLevel.Q, H: QRCode.CorrectLevel.H };
 
+  // Live updates: regenerate as the user types or changes any option.
+  let renderTimer = null;
+
+  document.getElementById('url-input').addEventListener('input', () => {
+    clearTimeout(renderTimer);
+    renderTimer = setTimeout(() => generate(false), 120);
+  });
+
+  ['size-select', 'ec-select', 'color-dark', 'color-light', 'border-toggle'].forEach(id => {
+    document.getElementById(id).addEventListener('input', () => generate(false));
+  });
+
   document.getElementById('url-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') generate();
   });
 
-  function generate() {
+  // showError defaults to true for explicit actions (button / Enter); live edits pass false.
+  function generate(showError = true) {
     const input = document.getElementById('url-input').value.trim();
     const errorEl = document.getElementById('error-msg');
 
     if (!input) {
-      errorEl.classList.add('visible');
+      errorEl.classList.toggle('visible', showError);
+      document.getElementById('qr-output').classList.remove('visible');
       return;
     }
     errorEl.classList.remove('visible');
@@ -486,9 +528,15 @@
     const ec = document.getElementById('ec-select').value;
     const darkColor = document.getElementById('color-dark').value;
     const lightColor = document.getElementById('color-light').value;
+    const showBorder = document.getElementById('border-toggle').checked;
+    const margin = showBorder ? Math.round(size / 12) : 0;
 
     const container = document.getElementById('qr-container');
     container.innerHTML = '';
+    container.style.background = lightColor;
+    container.style.padding = margin + 'px';
+    container.dataset.margin = margin;
+    container.dataset.light = lightColor;
 
     qrInstance = new QRCode(container, {
       text: input,
@@ -504,20 +552,29 @@
 
   function download() {
     const container = document.getElementById('qr-container');
-    const canvas = container.querySelector('canvas');
-    const img = container.querySelector('img');
+    const source = container.querySelector('canvas') || container.querySelector('img');
+    if (!source) return;
 
-    if (canvas) {
-      const link = document.createElement('a');
-      link.download = 'qrcode.png';
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    } else if (img) {
-      const link = document.createElement('a');
-      link.download = 'qrcode.png';
-      link.href = img.src;
-      link.click();
+    const margin = parseInt(container.dataset.margin || '0', 10);
+    const light = container.dataset.light || '#ffffff';
+    const baseW = source.width || source.naturalWidth;
+    const baseH = source.height || source.naturalHeight;
+
+    const out = document.createElement('canvas');
+    out.width = baseW + margin * 2;
+    out.height = baseH + margin * 2;
+
+    const ctx = out.getContext('2d');
+    if (margin > 0) {
+      ctx.fillStyle = light;
+      ctx.fillRect(0, 0, out.width, out.height);
     }
+    ctx.drawImage(source, margin, margin);
+
+    const link = document.createElement('a');
+    link.download = 'qrcode.png';
+    link.href = out.toDataURL('image/png');
+    link.click();
   }
 </script>
 </body>
