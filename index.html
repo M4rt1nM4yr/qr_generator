@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QR Code Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --border: #2a2a2a;
+    --accent: #e8ff57;
+    --accent-dim: #b8cc3a;
+    --text: #f0f0f0;
+    --muted: #888;
+    --radius: 12px;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+
+  .logo {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.25em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+
+  h1 {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 300;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+  }
+
+  h1 span {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .subtitle {
+    margin-top: 0.75rem;
+    color: var(--muted);
+    font-size: 1rem;
+    font-weight: 300;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2rem;
+    width: 100%;
+    max-width: 560px;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  input[type="url"], input[type="text"] {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.875rem;
+    padding: 0.75rem 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input[type="url"]:focus, input[type="text"]:focus {
+    border-color: var(--accent);
+  }
+
+  input::placeholder { color: var(--muted); }
+
+  button.generate {
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: #0f0f0f;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0.75rem 1.25rem;
+    transition: background 0.2s, transform 0.1s;
+    white-space: nowrap;
+  }
+
+  button.generate:hover { background: var(--accent-dim); }
+  button.generate:active { transform: scale(0.97); }
+
+  .options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .option-group label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-bottom: 0.4rem;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .option-group select,
+  .option-group input[type="color"] {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.875rem;
+    padding: 0.6rem 0.75rem;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .option-group input[type="color"] {
+    padding: 0.3rem 0.5rem;
+    height: 38px;
+    cursor: pointer;
+  }
+
+  .qr-output {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .qr-output.visible { display: flex; }
+
+  #qr-container {
+    background: #fff;
+    border-radius: 8px;
+    padding: 16px;
+    display: inline-block;
+  }
+
+  #qr-container canvas, #qr-container img {
+    display: block;
+  }
+
+  .download-btn {
+    background: transparent;
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    color: var(--accent);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0.65rem 1.5rem;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  .download-btn:hover {
+    background: var(--accent);
+    color: #0f0f0f;
+  }
+
+  footer {
+    margin-top: 3rem;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-family: 'DM Mono', monospace;
+  }
+
+  footer a { color: var(--muted); text-decoration: none; }
+  footer a:hover { color: var(--accent); }
+
+  .error {
+    color: #ff6b6b;
+    font-size: 0.8rem;
+    margin-top: -1rem;
+    margin-bottom: 0.5rem;
+    display: none;
+  }
+  .error.visible { display: block; }
+</style>
+</head>
+<body>
+
+<header>
+  <p class="logo">Free · Fast · Private</p>
+  <h1>Generate your <span>QR code</span></h1>
+  <p class="subtitle">No sign-up. No tracking. Works entirely in your browser.</p>
+</header>
+
+<div class="card">
+  <div class="input-row">
+    <input type="text" id="url-input" placeholder="https://example.com" />
+    <button class="generate" onclick="generate()">Generate</button>
+  </div>
+  <p class="error" id="error-msg">Please enter a valid URL.</p>
+
+  <div class="options">
+    <div class="option-group">
+      <label>Size</label>
+      <select id="size-select">
+        <option value="128">Small (128px)</option>
+        <option value="200" selected>Medium (200px)</option>
+        <option value="300">Large (300px)</option>
+        <option value="400">XL (400px)</option>
+      </select>
+    </div>
+    <div class="option-group">
+      <label>Error correction</label>
+      <select id="ec-select">
+        <option value="L">Low (7%)</option>
+        <option value="M" selected>Medium (15%)</option>
+        <option value="Q">High (25%)</option>
+        <option value="H">Max (30%)</option>
+      </select>
+    </div>
+    <div class="option-group">
+      <label>Dark color</label>
+      <input type="color" id="color-dark" value="#000000" />
+    </div>
+    <div class="option-group">
+      <label>Light color</label>
+      <input type="color" id="color-light" value="#ffffff" />
+    </div>
+  </div>
+
+  <div class="qr-output" id="qr-output">
+    <div id="qr-container"></div>
+    <button class="download-btn" onclick="download()">Download PNG</button>
+  </div>
+</div>
+
+<footer>
+  <p>Built with ❤ · <a href="#">Add to your site</a></p>
+</footer>
+
+<script>
+  let qrInstance = null;
+
+  const ecMap = { L: QRCode.CorrectLevel.L, M: QRCode.CorrectLevel.M, Q: QRCode.CorrectLevel.Q, H: QRCode.CorrectLevel.H };
+
+  document.getElementById('url-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') generate();
+  });
+
+  function generate() {
+    const input = document.getElementById('url-input').value.trim();
+    const errorEl = document.getElementById('error-msg');
+
+    if (!input) {
+      errorEl.classList.add('visible');
+      return;
+    }
+    errorEl.classList.remove('visible');
+
+    const size = parseInt(document.getElementById('size-select').value);
+    const ec = document.getElementById('ec-select').value;
+    const darkColor = document.getElementById('color-dark').value;
+    const lightColor = document.getElementById('color-light').value;
+
+    const container = document.getElementById('qr-container');
+    container.innerHTML = '';
+
+    qrInstance = new QRCode(container, {
+      text: input,
+      width: size,
+      height: size,
+      colorDark: darkColor,
+      colorLight: lightColor,
+      correctLevel: ecMap[ec]
+    });
+
+    document.getElementById('qr-output').classList.add('visible');
+  }
+
+  function download() {
+    const container = document.getElementById('qr-container');
+    const canvas = container.querySelector('canvas');
+    const img = container.querySelector('img');
+
+    if (canvas) {
+      const link = document.createElement('a');
+      link.download = 'qrcode.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } else if (img) {
+      const link = document.createElement('a');
+      link.download = 'qrcode.png';
+      link.href = img.src;
+      link.click();
+    }
+  }
+</script>
+</body>
+</html>
